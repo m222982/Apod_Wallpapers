@@ -5,7 +5,7 @@ using System.Drawing;
 using System.Management;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
-using System;
+using System.Text.Json;
 
 namespace Apod_Wallpapers
 {
@@ -21,8 +21,23 @@ namespace Apod_Wallpapers
 
         static HttpClient client = new HttpClient();
 
+        static Setting setting = new Setting() { NASA = false, Explaination = true};
+
         static void Main()
         {
+            if (File.Exists("Apod_Wallpaper.json"))
+            {
+                string txtSetting = File.ReadAllText("Apod_Wallpaper.json");
+                try
+                {
+                    setting = JsonSerializer.Deserialize<Setting>(txtSetting);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+
             Console.WriteLine("Apod wallpaper start...");
             try
             {
@@ -37,7 +52,11 @@ namespace Apod_Wallpapers
         static async Task RunAsync()
         {
             //var response = await client.GetAsync("http://sprite.phys.ncku.edu.tw/astrolab/mirrors/apod/apod.html");
-            var response = await client.GetAsync("https://apod.nasa.gov/apod/astropix.html");
+
+            string url_apod = setting.NASA ? "https://apod.nasa.gov/apod/astropix.html" :
+                "http://sprite.phys.ncku.edu.tw/astrolab/mirrors/apod/apod.html";
+            var response = await client.GetAsync(url_apod);
+
             if (response.IsSuccessStatusCode)
             {
                 var webContent = await response.Content.ReadAsStringAsync();
@@ -92,20 +111,25 @@ namespace Apod_Wallpapers
                         image = ResizeImage(image, (int)screenRes.Width, (int)(screenRes.Width / wh_ratio_img));
                     }
                 }
-
-                //取得說明
-                var explainStr = parseExplainText(webContent).Replace("\n\n", "\n");
-                //Console.WriteLine(explainStr);
-
-                var lineCnt = explainStr.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).Length;
+                
                 Bitmap bitmap = new Bitmap(image);
-
-                using (Graphics g = Graphics.FromImage(bitmap))
+                
+                if (setting.Explaination)
                 {
-                    Font font = new Font("Arial", 10);
-                    Brush brush = Brushes.White;
-                    g.DrawString(explainStr, font, brush, new PointF(10, image.Height - lineCnt * font.Height -40)); //40 為工作表高度
+                    var explainStr = setting.NASA ? parseNasaExplainText(webContent) : parseExplainText(webContent);
+                    //Console.WriteLine(explainStr);
+
+                    var lineCnt = explainStr.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).Length;
+
+                    using (Graphics g = Graphics.FromImage(bitmap))
+                    {
+                        Font font = new Font("Arial", 10);
+                        Brush brush = Brushes.White;
+                        g.DrawString(explainStr, font, brush, new PointF(10, image.Height - lineCnt * font.Height -40)); //40 為工作表高度
+                    }
                 }
+                //取得說明
+
 
                 Console.WriteLine(string.Format("Save image file {0}.", saveImgFilename));
                 bitmap.Save(saveImgFilename);
@@ -121,7 +145,6 @@ namespace Apod_Wallpapers
                 }
                 // 呼叫 SystemParametersInfo 設定桌布
                 SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, saveImgFilename, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
-
             }
         }
 
@@ -161,6 +184,25 @@ namespace Apod_Wallpapers
         static string parseExplainText(string webContent)
         {
             // 正則表達式匹配 SRC 屬性中的字串
+            string pattern = @"<b>\s*說明:\s*</b>\s*([\p{L}\p{Z}\p{S}\p{N}\p{P}\p{C}]*?)<p>";
+
+            // 使用正則表達式進行匹配
+            Match match = Regex.Match(webContent, pattern, RegexOptions.IgnoreCase);
+
+            // 如果匹配失敗，回傳空字串
+            if (!match.Success)
+            {
+                Console.WriteLine("Can't get explanation.");
+                return string.Empty;
+            }
+            // 提取匹配組中的內容
+            // 正則表達式移除 HTML 標籤
+            return Regex.Replace(match.Groups[1].Value, @"<\/?(.|\r|\n)+?\/?>", "").Replace("\n\n", "\n");
+        }
+
+        static string parseNasaExplainText(string webContent)
+        {
+            // 正則表達式匹配 SRC 屬性中的字串
             //string pattern = @"<b>\s*說明:\s*</b>\s*([\p{L}\p{Z}\p{S}\p{N}\p{P}\p{C}]*?)<p>";
             string pattern = @"<b>\s*Explanation:\s*</b>\s*([\p{L}\p{Z}\p{S}\p{N}\p{P}\p{C}]*?)<p>";
             // 使用正則表達式進行匹配
@@ -174,7 +216,11 @@ namespace Apod_Wallpapers
             }
             // 提取匹配組中的內容
             // 正則表達式移除 HTML 標籤
-            return Regex.Replace(match.Groups[1].Value, @"<\/?(.|\r|\n)+?\/?>", "");
+            return Regex.Replace(match.Groups[1].Value, @"<\/?(.|\r|\n)+?\/?>", "")
+                .Replace("\n", "")
+                .Replace(".", ".\n")
+                .Replace("?", "?\n")
+                .Replace("!", "!\n");
         }
 
         static Image ResizeImage(Image image, int width, int height)
