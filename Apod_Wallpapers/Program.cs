@@ -86,9 +86,14 @@ namespace Apod_Wallpapers
 
                 Console.WriteLine(string.Format("Download image file {0}.", imgUrl));
                 //下載照片
-                var imageStream = await client.GetStreamAsync(imgUrl);
+                //var imageStream = await client.GetStreamAsync(imgUrl);
 
-                System.Drawing.Image image = Image.FromStream(imageStream);
+                //System.Drawing.Image image = Image.FromStream(imageStream);
+
+                using var httpClient = new HttpClient();
+                byte[] imageBytes = await httpClient.GetByteArrayAsync(imgUrl); // 整個下載到記憶體
+                using var ms = new MemoryStream(imageBytes);                    // 不用 NetworkStream
+                System.Drawing.Image image = System.Drawing.Image.FromStream(ms, false, false);
 
                 var wh_ratio_img = (float)image.Width / image.Height;
 
@@ -184,7 +189,7 @@ namespace Apod_Wallpapers
         static string parseExplainText(string webContent)
         {
             // 正則表達式匹配 SRC 屬性中的字串
-            string pattern = @"<b>\s*說明:\s*</b>\s*([\p{L}\p{Z}\p{S}\p{N}\p{P}\p{C}]*?)<p>";
+            string pattern = @"<b>\s*說明：\s*</b>\s*([\p{L}\p{Z}\p{S}\p{N}\p{P}\p{C}]*?)<p>";
 
             // 使用正則表達式進行匹配
             Match match = Regex.Match(webContent, pattern, RegexOptions.IgnoreCase);
