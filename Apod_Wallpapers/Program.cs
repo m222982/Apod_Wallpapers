@@ -23,7 +23,7 @@ namespace Apod_Wallpapers
 
         static Setting setting = new Setting() { NASA = false, Explaination = true};
 
-        static void Main()
+        static void Main(string[] args)
         {
             if (File.Exists("Apod_Wallpaper.json"))
             {
@@ -41,7 +41,7 @@ namespace Apod_Wallpapers
             Console.WriteLine("Apod wallpaper start...");
             try
             {
-                RunAsync().Wait();
+                RunAsync(args.FirstOrDefault()).Wait();
             }
             catch (Exception ex)
             {
@@ -49,12 +49,10 @@ namespace Apod_Wallpapers
             }
         }
 
-        static async Task RunAsync()
+        static async Task RunAsync(string? apodPage)
         {
-            //var response = await client.GetAsync("http://sprite.phys.ncku.edu.tw/astrolab/mirrors/apod/apod.html");
-
             string url_apod = setting.NASA ? "https://apod.nasa.gov/apod/astropix.html" :
-                "http://sprite.phys.ncku.edu.tw/astrolab/mirrors/apod/apod.html";
+                $"https://sprite.phys.ncku.edu.tw/astrolab/mirrors/apod/{(string.IsNullOrWhiteSpace(apodPage) ? "apod" : apodPage)}.html";
             var response = await client.GetAsync(url_apod);
 
             if (response.IsSuccessStatusCode)
@@ -188,8 +186,8 @@ namespace Apod_Wallpapers
 
         static string parseExplainText(string webContent)
         {
-            // 正則表達式匹配 SRC 屬性中的字串
-            string pattern = @"<b>\s*說明：\s*</b>\s*([\p{L}\p{Z}\p{S}\p{N}\p{P}\p{C}]*?)<p>";
+            // 說明正文到下一個置中區塊為止，避免包含後續公告、導覽等內容
+            string pattern = @"(?:<b>\s*)?說明[：:](?:\s*</b>)?\s*([\s\S]*?)(?=<center\b)";
 
             // 使用正則表達式進行匹配
             Match match = Regex.Match(webContent, pattern, RegexOptions.IgnoreCase);
