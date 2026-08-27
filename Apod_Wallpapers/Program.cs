@@ -186,8 +186,9 @@ namespace Apod_Wallpapers
 
         static string parseExplainText(string webContent)
         {
-            // 說明正文到下一個置中區塊為止，避免包含後續公告、導覽等內容
-            string pattern = @"(?:<b>\s*)?說明[：:](?:\s*</b>)?\s*([\s\S]*?)(?=<center\b)";
+            // 成大鏡像曾使用「說明」與「解說」兩種標題；正文到下一個置中區塊為止，
+            // 避免包含後續公告、導覽等內容。
+            string pattern = @"(?:<b>\s*)?(?:說明|解說)[：:](?:\s*</b>)?\s*([\s\S]*?)(?=<center\b)";
 
             // 使用正則表達式進行匹配
             Match match = Regex.Match(webContent, pattern, RegexOptions.IgnoreCase);

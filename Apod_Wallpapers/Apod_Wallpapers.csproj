@@ -6,9 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <StartupObject>Apod_Wallpapers.Program</StartupObject>
-    <Version>2.0.0.1</Version>
-    <FileVersion>2.0.0.1</FileVersion>
-    <AssemblyVersion>2.0.0.1</AssemblyVersion>
+    <Version>2.0.0.2</Version>
+    <FileVersion>2.0.0.2</FileVersion>
+    <AssemblyVersion>2.0.0.2</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

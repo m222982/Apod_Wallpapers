@@ -1,6 +1,10 @@
 # NASA APOD As Wallpaper 
 The software downloads NASA Astronomical Picture of the Day and set it as desktop wallpaper.
 
+## Version history
+
+- 2.0.0.2: Support both `說明` and `解說` explanation headings used by the NCKU APOD mirror.
+
 ## System Requirement
 - The software was build under .NET 8.0.
 
